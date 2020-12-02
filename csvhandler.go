@@ -27,7 +27,7 @@ func New(r io.Reader) (CSVHandler, error) {
 		// Check if key already exist to stop with error
 		_, ok := headers[v]
 		if ok {
-			return CSVHandler{}, &ErrDuplicateKey{key: v}
+			return CSVHandler{}, ErrDuplicateKey{key: v}
 		}
 
 		headers[v] = i
