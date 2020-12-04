@@ -17,13 +17,17 @@ type Record struct {
 // For instance, Fprintln(w, "first_name", "last_name") writes "first_name='John' last_name='Smith'"
 // Expected errors are the same Get() may return
 func (r Record) Fprintln(w io.Writer, columns ...string) error {
-	for _, c := range columns {
+	for i, c := range columns {
 		v, err := r.Get(c)
 		if err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "%s='%s' ", c, v); err != nil {
+		if _, err := fmt.Fprintf(w, "%s='%s'", c, v); err != nil {
 			return err
+		}
+		// Add space separator if not the last element
+		if i != len(columns)-1 {
+			fmt.Fprintf(w, " ")
 		}
 	}
 	_, err := fmt.Fprint(w, "\n")
