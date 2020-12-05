@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -29,7 +30,7 @@ var r = Record{
 		"mean_connection": 6,
 		"out_of_bounds":   -1,
 	},
-	values: []string{"John", "Smith", "25", "true", "2018-11-05 12:55:10", "15.65", "12m"},
+	values: []string{"John", "Smith", "25", "true", "2018-11-05 12:55:10", "15.65", "12m10s"},
 }
 
 func TestFprintln(t *testing.T) {
@@ -100,6 +101,234 @@ func TestGet(t *testing.T) {
 	for n, tc := range testcases {
 		t.Run(n, func(t *testing.T) {
 			val, err := r.Get(tc.key)
+			if tc.err {
+				require.Error(t, err)
+				if tc.errType != nil {
+					assert.True(t, errors.As(err, tc.errType))
+				}
+			} else {
+				assert.Equal(t, tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestGetBool(t *testing.T) {
+	testcases := map[string]struct {
+		key      string
+		expected bool
+		err      bool
+		errType  interface{}
+	}{
+		"regular": {
+			key:      "is_active",
+			expected: true,
+		},
+		"unknown key": {
+			key:     "unknown",
+			err:     true,
+			errType: &ErrUnknownKey{},
+		},
+		"not boolean": {
+			key:     "first_name",
+			err:     true,
+			errType: &ErrWrongType{},
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			val, err := r.GetBool(tc.key)
+			if tc.err {
+				require.Error(t, err)
+				if tc.errType != nil {
+					assert.True(t, errors.As(err, tc.errType))
+				}
+			} else {
+				assert.Equal(t, tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestGetInt(t *testing.T) {
+	testcases := map[string]struct {
+		key      string
+		expected int
+		err      bool
+		errType  interface{}
+	}{
+		"regular": {
+			key:      "age",
+			expected: 25,
+		},
+		"unknown key": {
+			key:     "unknown",
+			err:     true,
+			errType: &ErrUnknownKey{},
+		},
+		"not int": {
+			key:     "first_name",
+			err:     true,
+			errType: &ErrWrongType{},
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			val, err := r.GetInt(tc.key)
+			if tc.err {
+				require.Error(t, err)
+				if tc.errType != nil {
+					assert.True(t, errors.As(err, tc.errType))
+				}
+			} else {
+				assert.Equal(t, tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestGetInt64(t *testing.T) {
+	testcases := map[string]struct {
+		key      string
+		expected int64
+		err      bool
+		errType  interface{}
+	}{
+		"regular": {
+			key:      "age",
+			expected: 25,
+		},
+		"unknown key": {
+			key:     "unknown",
+			err:     true,
+			errType: &ErrUnknownKey{},
+		},
+		"not int": {
+			key:     "first_name",
+			err:     true,
+			errType: &ErrWrongType{},
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			val, err := r.GetInt64(tc.key)
+			if tc.err {
+				require.Error(t, err)
+				if tc.errType != nil {
+					assert.True(t, errors.As(err, tc.errType))
+				}
+			} else {
+				assert.Equal(t, tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestGetFloat64(t *testing.T) {
+	testcases := map[string]struct {
+		key      string
+		expected float64
+		err      bool
+		errType  interface{}
+	}{
+		"regular": {
+			key:      "balance",
+			expected: 15.65,
+		},
+		"unknown key": {
+			key:     "unknown",
+			err:     true,
+			errType: &ErrUnknownKey{},
+		},
+		"not int": {
+			key:     "first_name",
+			err:     true,
+			errType: &ErrWrongType{},
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			val, err := r.GetFloat64(tc.key)
+			if tc.err {
+				require.Error(t, err)
+				if tc.errType != nil {
+					assert.True(t, errors.As(err, tc.errType))
+				}
+			} else {
+				assert.Equal(t, tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestGetTime(t *testing.T) {
+	testcases := map[string]struct {
+		key      string
+		expected time.Time
+		err      bool
+		errType  interface{}
+	}{
+		"regular": {
+			key:      "registered",
+			expected: time.Date(2018, time.November, 5, 12, 55, 10, 0, time.UTC),
+		},
+		"unknown key": {
+			key:     "unknown",
+			err:     true,
+			errType: &ErrUnknownKey{},
+		},
+		"not int": {
+			key:     "first_name",
+			err:     true,
+			errType: &ErrWrongType{},
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			val, err := r.GetTime("2006-01-02 15:04:05", tc.key)
+			if tc.err {
+				require.Error(t, err)
+				if tc.errType != nil {
+					assert.True(t, errors.As(err, tc.errType))
+				}
+			} else {
+				assert.Equal(t, tc.expected, val)
+			}
+		})
+	}
+}
+
+func TestGetDuration(t *testing.T) {
+	testcases := map[string]struct {
+		key      string
+		expected time.Duration
+		err      bool
+		errType  interface{}
+	}{
+		"regular": {
+			key:      "mean_connection",
+			expected: 12*time.Minute + 10*time.Second,
+		},
+		"unknown key": {
+			key:     "unknown",
+			err:     true,
+			errType: &ErrUnknownKey{},
+		},
+		"not int": {
+			key:     "first_name",
+			err:     true,
+			errType: &ErrWrongType{},
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			val, err := r.GetDuration(tc.key)
 			if tc.err {
 				require.Error(t, err)
 				if tc.errType != nil {
