@@ -6,12 +6,21 @@ import (
 	"sync"
 )
 
+// CSVHandler reads records from a CSV-encoded file.
+//
+// It internally wraps a `encoding/csv.Reader` and uses it to read the data.
+// It also holds a map keeping the column names with their indexes.
+// This handler is thread safe.
 type CSVHandler struct {
 	reader  *csv.Reader
 	headers map[string]int
 	mutex   *sync.Mutex
 }
 
+// New creates a new CSVHandler from the given reader.
+// It also read the first record as column names and store the indexes.
+// As it wraps `encoding/csv.Reader`, any errors returned by the `Read`function can be returned here (including io.EOF is the reader is empty).
+// If a duplicate is detected among column names, ErrDuplicateKey is returned.
 func New(r io.Reader) (CSVHandler, error) {
 	csvReader := csv.NewReader(r)
 
