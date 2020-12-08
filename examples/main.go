@@ -38,10 +38,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		age, err := record.Get("age")
+		age, err := record.GetInt("age")
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("%s %s is %s\n", firstName, lastName, age)
+		fmt.Printf("%s %s is %d\n", firstName, lastName, age)
 	}
 }
