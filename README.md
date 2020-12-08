@@ -1,4 +1,4 @@
-# CSVHandler [![PkgGoDev](https://pkg.go.dev/badge/github.com/jcuvillier/csvhandler)](https://pkg.go.dev/github.com/jcuvillier/csvhandler)
+# CSVHandler [![PkgGoDev](https://pkg.go.dev/badge/github.com/jcuvillier/csvhandler)](https://pkg.go.dev/github.com/jcuvillier/csvhandler) [![CI](https://github.com/jcuvillier/csvhandler/workflows/Go/badge.svg)](https://github.com/jcuvillier/csvhandler/actions?query=workflow%3AGo)
 
 CSVHandler is a utility package on top of `encoding/csv` to ease read by allowing direct value access with column name. 
 
