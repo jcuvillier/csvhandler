@@ -11,7 +11,7 @@ import (
 // Record holds the fields for a given entry.
 // It offers utility functions to access field based on the column name
 type Record struct {
-	headers map[string]int
+	columns map[string]int
 	values  []string
 }
 
@@ -47,7 +47,7 @@ func (r Record) Println(columns ...string) error {
 // If the key is missing, ErrUnknownKey is returned.
 // If the corresponding index is out of bounds the current record, ErrOutOfBounds is returned.
 func (r Record) Get(key string) (string, error) {
-	i, ok := r.headers[key]
+	i, ok := r.columns[key]
 	if !ok {
 		return "", ErrUnknownKey{key}
 	}
@@ -149,4 +149,8 @@ func (r Record) GetDuration(key string) (time.Duration, error) {
 		return 0, ErrWrongType{key: key, err: err}
 	}
 	return d, nil
+}
+
+func (r Record) Header() map[string]int {
+	return r.columns
 }

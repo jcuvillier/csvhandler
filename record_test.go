@@ -20,7 +20,7 @@ func (w errWriter) Write(p []byte) (n int, err error) {
 }
 
 var r = Record{
-	headers: map[string]int{
+	columns: map[string]int{
 		"first_name":      0,
 		"last_name":       1,
 		"age":             2,

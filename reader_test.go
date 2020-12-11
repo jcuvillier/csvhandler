@@ -2,6 +2,7 @@ package csvhandler
 
 import (
 	"bytes"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
@@ -26,17 +27,22 @@ func (r tstReader) Read(p []byte) (int, error) {
 	return buf.Read(p)
 }
 
-func TestNew(t *testing.T) {
+func TestNewReader(t *testing.T) {
 	testcases := map[string]struct {
-		data       []byte
-		headersLen int
-		errReader  bool
-		errType    interface{}
+		data      []byte
+		header    []string
+		headerLen int
+		errReader bool
+		errType   interface{}
 	}{
 		"regular": {
 			data: []byte(`first_name,last_name
 			Holly,Franklin`),
-			headersLen: 2,
+			headerLen: 2,
+		},
+		"with header": {
+			header:    []string{"first_name", "last_name"},
+			headerLen: 2,
 		},
 		"read error": {
 			errReader: true,
@@ -58,14 +64,14 @@ func TestNew(t *testing.T) {
 				r.err = fmt.Errorf("read error")
 			}
 
-			handler, err := New(r)
+			reader, err := NewReader(csv.NewReader(r), tc.header...)
 			if tc.errReader || tc.errType != nil {
 				require.Error(t, err)
 				if tc.errType != nil {
 					assert.True(t, errors.As(err, tc.errType))
 				}
 			} else {
-				assert.Len(t, handler.headers, tc.headersLen)
+				assert.Len(t, reader.columns, tc.headerLen)
 			}
 		})
 	}
@@ -87,14 +93,14 @@ func TestReadProcessCSV(t *testing.T) {
 			f, err := os.Open(filepath.Join("tstdata", tc.filename))
 			require.NoError(t, err)
 			defer f.Close()
-			handler, err := New(f)
+			reader, err := NewReader(csv.NewReader(f))
 			require.NoError(t, err)
 
 			/// Read all records from file
 			var records []Record
 			for {
 				// Read handler to get a record
-				record, err := handler.Read()
+				record, err := reader.Read()
 				if err == io.EOF {
 					break
 				}

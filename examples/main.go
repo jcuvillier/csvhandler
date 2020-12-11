@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io"
 	"log"
@@ -15,13 +16,13 @@ func main() {
 		log.Fatal(err)
 	}
 	defer f.Close()
-	handler, err := csvhandler.New(f)
+	reader, err := csvhandler.NewReader(csv.NewReader(f))
 	if err != nil {
 		log.Fatal(err)
 	}
 	for {
 		// Read handler to get a record
-		record, err := handler.Read()
+		record, err := reader.Read()
 		if err == io.EOF {
 			break
 		}
