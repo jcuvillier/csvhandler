@@ -11,9 +11,9 @@ import (
 // It also holds a map keeping the column names with their indexes.
 // This Reader is thread safe.
 type Reader struct {
-	reader  *csv.Reader
-	columns map[string]int
-	mutex   *sync.Mutex
+	reader *csv.Reader
+	header []string
+	mutex  *sync.Mutex
 }
 
 // NewReader creates a new Reader from the given `encoding/csv.Reader`.
@@ -32,21 +32,19 @@ func NewReader(r *csv.Reader, header ...string) (*Reader, error) {
 		}
 	}
 
-	// Iterate over fields header in order to save the column names with the index
-	columns := make(map[string]int)
-	for i, v := range header {
-		// Check if key already exist to stop with error
-		_, ok := columns[v]
-		if ok {
-			return nil, ErrDuplicateKey{key: v}
+	// Check for duplicates
+	set := make(map[string]struct{})
+	for _, h := range header {
+		if _, duplicate := set[h]; duplicate {
+			return nil, ErrDuplicateKey{key: h}
 		}
-
-		columns[v] = i
+		set[h] = struct{}{}
 	}
+
 	return &Reader{
-		reader:  r,
-		columns: columns,
-		mutex:   &sync.Mutex{},
+		reader: r,
+		header: header,
+		mutex:  &sync.Mutex{},
 	}, nil
 }
 
@@ -58,9 +56,16 @@ func (r *Reader) Read() (*Record, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	r.reader.FieldsPerRecord = len(r.header)
 	record, err := r.reader.Read()
+
+	fields := make(map[string]string)
+	for i, v := range record {
+		// At this point, we are sure `record` and `r.header` ahve the same size
+		fields[r.header[i]] = v
+	}
+
 	return &Record{
-		values:  record,
-		columns: r.columns,
+		fields: fields,
 	}, err
 }

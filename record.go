@@ -11,8 +11,7 @@ import (
 // Record holds the fields for a given entry.
 // It offers utility functions to access field based on the column name
 type Record struct {
-	columns map[string]int
-	values  []string
+	fields map[string]string
 }
 
 // Fprintln prints into the given writer each given column with a 'key=value' format.
@@ -45,21 +44,16 @@ func (r Record) Println(columns ...string) error {
 
 // Get returns as a string the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
-// If the corresponding index is out of bounds the current record, ErrOutOfBounds is returned.
 func (r Record) Get(key string) (string, error) {
-	i, ok := r.columns[key]
+	f, ok := r.fields[key]
 	if !ok {
 		return "", ErrUnknownKey{key}
 	}
-	if i < 0 || i > len(r.values) {
-		return "", ErrOutOfBounds{key: key, index: i}
-	}
-	return r.values[i], nil
+	return f, nil
 }
 
 // GetBool returns as a boolean the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
-// If the corresponding index is out of bounds the current record, ErrOutOfBounds is returned.
 // If the field is not the expected type, ErrWrongType is returned.
 func (r Record) GetBool(key string) (bool, error) {
 	v, err := r.Get(key)
@@ -74,7 +68,6 @@ func (r Record) GetBool(key string) (bool, error) {
 
 // GetInt returns as an integer the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
-// If the corresponding index is out of bounds the current record, ErrOutOfBounds is returned.
 // If the field is not the expected type, ErrWrongType is returned.
 func (r Record) GetInt(key string) (int, error) {
 	i, err := r.GetInt64(key)
@@ -86,7 +79,6 @@ func (r Record) GetInt(key string) (int, error) {
 
 // GetInt64 returns as an integer64 the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
-// If the corresponding index is out of bounds the current record, ErrOutOfBounds is returned.
 // If the field is not the expected type, ErrWrongType is returned.
 func (r Record) GetInt64(key string) (int64, error) {
 	v, err := r.Get(key)
@@ -103,7 +95,6 @@ func (r Record) GetInt64(key string) (int64, error) {
 
 // GetFloat64 returns as an float the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
-// If the corresponding index is out of bounds the current record, ErrOutOfBounds is returned.
 // If the field is not the expected type, ErrWrongType is returned.
 func (r Record) GetFloat64(key string) (float64, error) {
 	v, err := r.Get(key)
@@ -119,7 +110,6 @@ func (r Record) GetFloat64(key string) (float64, error) {
 
 // GetTime returns as a time.Time the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
-// If the corresponding index is out of bounds the current record, ErrOutOfBounds is returned.
 // If the field cannot  be parsed as a time using the given layout, ErrWrongType is returned.
 func (r Record) GetTime(layout, key string) (time.Time, error) {
 	v, err := r.Get(key)
@@ -136,7 +126,6 @@ func (r Record) GetTime(layout, key string) (time.Time, error) {
 
 // GetDuration returns as a time.Duration the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
-// If the corresponding index is out of bounds the current record, ErrOutOfBounds is returned.
 // If the field cannot be parsed as a duration, ErrWrongType is returned.
 func (r Record) GetDuration(key string) (time.Duration, error) {
 	v, err := r.Get(key)
@@ -149,8 +138,4 @@ func (r Record) GetDuration(key string) (time.Duration, error) {
 		return 0, ErrWrongType{key: key, err: err}
 	}
 	return d, nil
-}
-
-func (r Record) Header() map[string]int {
-	return r.columns
 }

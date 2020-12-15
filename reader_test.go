@@ -71,7 +71,7 @@ func TestNewReader(t *testing.T) {
 					assert.True(t, errors.As(err, tc.errType))
 				}
 			} else {
-				assert.Len(t, reader.columns, tc.headerLen)
+				assert.Len(t, reader.header, tc.headerLen)
 			}
 		})
 	}

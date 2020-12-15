@@ -20,17 +20,15 @@ func (w errWriter) Write(p []byte) (n int, err error) {
 }
 
 var r = Record{
-	columns: map[string]int{
-		"first_name":      0,
-		"last_name":       1,
-		"age":             2,
-		"is_active":       3,
-		"registered":      4,
-		"balance":         5,
-		"mean_connection": 6,
-		"out_of_bounds":   -1,
+	fields: map[string]string{
+		"first_name":      "John",
+		"last_name":       "Smith",
+		"age":             "25",
+		"is_active":       "true",
+		"registered":      "2018-11-05 12:55:10",
+		"balance":         "15.65",
+		"mean_connection": "12m10s",
 	},
-	values: []string{"John", "Smith", "25", "true", "2018-11-05 12:55:10", "15.65", "12m10s"},
 }
 
 func TestFprintln(t *testing.T) {
@@ -91,11 +89,6 @@ func TestGet(t *testing.T) {
 			err:     true,
 			errType: &ErrUnknownKey{},
 		},
-		"out of bounds": {
-			key:     "out_of_bounds",
-			err:     true,
-			errType: &ErrOutOfBounds{},
-		},
 	}
 
 	for n, tc := range testcases {
@@ -129,7 +122,7 @@ func TestGetBool(t *testing.T) {
 			err:     true,
 			errType: &ErrUnknownKey{},
 		},
-		"not boolean": {
+		"not bool": {
 			key:     "first_name",
 			err:     true,
 			errType: &ErrWrongType{},
@@ -205,7 +198,7 @@ func TestGetInt64(t *testing.T) {
 			err:     true,
 			errType: &ErrUnknownKey{},
 		},
-		"not int": {
+		"not int64": {
 			key:     "first_name",
 			err:     true,
 			errType: &ErrWrongType{},
@@ -243,7 +236,7 @@ func TestGetFloat64(t *testing.T) {
 			err:     true,
 			errType: &ErrUnknownKey{},
 		},
-		"not int": {
+		"not float64": {
 			key:     "first_name",
 			err:     true,
 			errType: &ErrWrongType{},
@@ -281,7 +274,7 @@ func TestGetTime(t *testing.T) {
 			err:     true,
 			errType: &ErrUnknownKey{},
 		},
-		"not int": {
+		"not time": {
 			key:     "first_name",
 			err:     true,
 			errType: &ErrWrongType{},
@@ -319,7 +312,7 @@ func TestGetDuration(t *testing.T) {
 			err:     true,
 			errType: &ErrUnknownKey{},
 		},
-		"not int": {
+		"not duration": {
 			key:     "first_name",
 			err:     true,
 			errType: &ErrWrongType{},
