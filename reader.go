@@ -2,6 +2,7 @@ package csvhandler
 
 import (
 	"encoding/csv"
+	"io"
 	"sync"
 )
 
@@ -58,14 +59,35 @@ func (r *Reader) Read() (*Record, error) {
 
 	r.reader.FieldsPerRecord = len(r.header)
 	record, err := r.reader.Read()
+	if err != nil {
+		return nil, err
+	}
 
 	fields := make(map[string]string)
 	for i, v := range record {
-		// At this point, we are sure `record` and `r.header` ahve the same size
+		// At this point, we are sure `record` and `r.header` have the same size
 		fields[r.header[i]] = v
 	}
 
 	return &Record{
 		fields: fields,
-	}, err
+	}, nil
+}
+
+// ReadAll ReadAll reads all the remaining records.
+//
+// As for the underlying `csv.Reader`, a successful call returns err == nil, not err == io.EOF.
+// Because ReadAll is defined to read until EOF, it does not treat end of file as an error to be reported.
+func (r *Reader) ReadAll() ([]*Record, error) {
+	var records []*Record
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			return records, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
 }
