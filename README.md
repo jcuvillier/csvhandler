@@ -1,6 +1,6 @@
 # CSVHandler
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/jcuvillier/csvhandler)](https://pkg.go.dev/github.com/jcuvillier/csvhandler) [![CI](https://github.com/jcuvillier/csvhandler/workflows/Go/badge.svg)](https://github.com/jcuvillier/csvhandler/actions?query=workflow%3AGo)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/jcuvillier/csvhandler)](https://pkg.go.dev/github.com/jcuvillier/csvhandler) [![CI](https://github.com/jcuvillier/csvhandler/workflows/Go/badge.svg)](https://github.com/jcuvillier/csvhandler/actions?query=workflow%3AGo) [![codecov](https://codecov.io/gh/jcuvillier/csvhandler/branch/master/graph/badge.svg?token=EUSKNU9LOP)](https://codecov.io/gh/jcuvillier/csvhandler)
 
 Golang built-in `encoding/csv` package can be tedious to use as it handles records as low level types `[]string`, forcing users to access field using indexes.  
 This package aims to ease this use by allowing direct access with the column name, with an API close to `encoding/csv`.  
