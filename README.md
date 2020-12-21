@@ -16,16 +16,44 @@ go get github.com/jcuvillier/csvhandler
 ## Reader
 
 ```golang
-	csvInput := bytes.NewBuffer([]byte(`
+csvInput := bytes.NewBuffer([]byte(`
 first_name,last_name,age
 Holly,Franklin,27
 Giacobo,Tolumello,18`,
-	))
+))
 
-	reader, _ := csvhandler.NewReader(csv.NewReader(csvInput))
-	record, _ := reader.Read()
-	record.Get("first_name") // returns Holly
-	record.GetInt("age")     // return 27
+reader, _ := csvhandler.NewReader(csv.NewReader(csvInput))
+record, _ := reader.Read()
+record.Get("first_name") // returns Holly
+record.GetInt("age")     // return 27
+```
+
+## Writer
+
+```golang
+// Create a writer to stdout with header "first_name,last_name,age"
+writer, _ := csvhandler.NewWriter( csv.NewWriter(os.Stdout), "first_name", "last_name","age")
+
+// Write header line
+writer.WriteHeader() // Writes first_name,last_name,age
+
+// Create a record to be written
+record := NewRecord()
+record.Set("first_name", "Holly")
+record.Set("last_name", "Franklin")
+record.Set("age", 27)
+writer.Write(record) // Writes Holly,Franklin,27
+```
+
+If a field is not specified, `Writer.EmptyValue` is used. A default value can also be provided with `Writer.SetDefault` function.
+
+```golang
+writer, _ := csvhandler.NewWriter( csv.NewWriter(os.Stdout), "first_name", "last_name","age")
+writer.SetDefault("age", 18)
+
+record := NewRecord()
+record.Set("first_name", "Holly")
+writer.Write(record) // Writes Holly,,18
 ```
 
 ## Record
@@ -46,4 +74,3 @@ You can also print as key/value pairs a record by giving the column name.
 ```golang
 r.Println("first_name", "last_name") // prints to stdout "first_name='Holly' last_name='Franklin'"
 ```
-

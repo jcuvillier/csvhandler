@@ -333,3 +333,11 @@ func TestGetDuration(t *testing.T) {
 		})
 	}
 }
+
+func TestSet(t *testing.T) {
+	r := NewRecord()
+	r.Set("key", "value")
+	v, err := r.Get("key")
+	require.NoError(t, err)
+	assert.Equal(t, "value", v)
+}
