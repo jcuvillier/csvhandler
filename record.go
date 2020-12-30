@@ -14,10 +14,23 @@ type Record struct {
 	fields map[string]string
 }
 
+// NewRecord returns a new empty Record.
+func NewRecord() *Record {
+	return &Record{
+		fields: make(map[string]string),
+	}
+}
+
+// Set sets the given value to the given key.
+// Calling twice this function with the same key will override the value.
+func (r *Record) Set(key string, value interface{}) {
+	r.fields[key] = fmt.Sprintf("%v", value)
+}
+
 // Fprintln prints into the given writer each given column with a 'key=value' format.
 // For instance, Fprintln(w, "first_name", "last_name") writes "first_name='John' last_name='Smith'"
 // Expected errors are the same Get() may return
-func (r Record) Fprintln(w io.Writer, columns ...string) error {
+func (r *Record) Fprintln(w io.Writer, columns ...string) error {
 	for i, c := range columns {
 		v, err := r.Get(c)
 		if err != nil {
@@ -38,13 +51,13 @@ func (r Record) Fprintln(w io.Writer, columns ...string) error {
 // Println prints into the standard output each given column with a 'key=value' format.
 // For instance, Fprintln(w, "first_name", "last_name") writes "first_name='John' last_name='Smith'"
 // Expected errors are the same Get() may return
-func (r Record) Println(columns ...string) error {
+func (r *Record) Println(columns ...string) error {
 	return r.Fprintln(os.Stdout, columns...)
 }
 
 // Get returns as a string the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
-func (r Record) Get(key string) (string, error) {
+func (r *Record) Get(key string) (string, error) {
 	f, ok := r.fields[key]
 	if !ok {
 		return "", ErrUnknownKey{key}
@@ -55,7 +68,7 @@ func (r Record) Get(key string) (string, error) {
 // GetBool returns as a boolean the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
 // If the field is not the expected type, ErrWrongType is returned.
-func (r Record) GetBool(key string) (bool, error) {
+func (r *Record) GetBool(key string) (bool, error) {
 	v, err := r.Get(key)
 	if err != nil {
 		return false, err
@@ -69,7 +82,7 @@ func (r Record) GetBool(key string) (bool, error) {
 // GetInt returns as an integer the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
 // If the field is not the expected type, ErrWrongType is returned.
-func (r Record) GetInt(key string) (int, error) {
+func (r *Record) GetInt(key string) (int, error) {
 	i, err := r.GetInt64(key)
 	if err != nil {
 		return 0, err
@@ -80,7 +93,7 @@ func (r Record) GetInt(key string) (int, error) {
 // GetInt64 returns as an integer64 the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
 // If the field is not the expected type, ErrWrongType is returned.
-func (r Record) GetInt64(key string) (int64, error) {
+func (r *Record) GetInt64(key string) (int64, error) {
 	v, err := r.Get(key)
 	if err != nil {
 		return 0, err
@@ -96,7 +109,7 @@ func (r Record) GetInt64(key string) (int64, error) {
 // GetFloat64 returns as an float the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
 // If the field is not the expected type, ErrWrongType is returned.
-func (r Record) GetFloat64(key string) (float64, error) {
+func (r *Record) GetFloat64(key string) (float64, error) {
 	v, err := r.Get(key)
 	if err != nil {
 		return 0, err
@@ -111,7 +124,7 @@ func (r Record) GetFloat64(key string) (float64, error) {
 // GetTime returns as a time.Time the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
 // If the field cannot  be parsed as a time using the given layout, ErrWrongType is returned.
-func (r Record) GetTime(layout, key string) (time.Time, error) {
+func (r *Record) GetTime(layout, key string) (time.Time, error) {
 	v, err := r.Get(key)
 	if err != nil {
 		return time.Unix(0, 0), err
@@ -127,7 +140,7 @@ func (r Record) GetTime(layout, key string) (time.Time, error) {
 // GetDuration returns as a time.Duration the field corresponding to the given key.
 // If the key is missing, ErrUnknownKey is returned.
 // If the field cannot be parsed as a duration, ErrWrongType is returned.
-func (r Record) GetDuration(key string) (time.Duration, error) {
+func (r *Record) GetDuration(key string) (time.Duration, error) {
 	v, err := r.Get(key)
 	if err != nil {
 		return 0, err
