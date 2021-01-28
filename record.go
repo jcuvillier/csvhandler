@@ -11,20 +11,39 @@ import (
 // Record holds the fields for a given entry.
 // It offers utility functions to access field based on the column name
 type Record struct {
-	fields map[string]string
+	fields map[string]field
+}
+
+type field struct {
+	value     interface{}
+	formatter Formatter
 }
 
 // NewRecord returns a new empty Record.
 func NewRecord() *Record {
 	return &Record{
-		fields: make(map[string]string),
+		fields: make(map[string]field),
 	}
 }
 
 // Set sets the given value to the given key.
+//
 // Calling twice this function with the same key will override the value.
-func (r *Record) Set(key string, value interface{}) {
-	r.fields[key] = fmt.Sprintf("%v", value)
+//
+// Optionally, caller can define formatters.
+// If none are provided, `defaultFormatter` is used (basic `fmt.Sprintf("%v",...)`)
+// If multiple formatters are provided they are chained using `chainFormatter`.
+func (r *Record) Set(key string, value interface{}, formatter ...Formatter) {
+	var f Formatter
+	if len(formatter) == 1 {
+		f = formatter[0]
+	} else if len(formatter) > 1 {
+		f = chainFormatter(formatter...)
+	}
+	r.fields[key] = field{
+		value:     value,
+		formatter: f,
+	}
 }
 
 // Fprintln prints into the given writer each given column with a 'key=value' format.
@@ -62,7 +81,12 @@ func (r *Record) Get(key string) (string, error) {
 	if !ok {
 		return "", ErrUnknownKey{key}
 	}
-	return f, nil
+	switch v := f.value.(type) {
+	case string:
+		return string(v), nil
+	default:
+		return defaultFormatter(v)
+	}
 }
 
 // GetBool returns as a boolean the field corresponding to the given key.

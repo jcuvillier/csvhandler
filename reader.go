@@ -63,10 +63,12 @@ func (r *Reader) Read() (*Record, error) {
 		return nil, err
 	}
 
-	fields := make(map[string]string)
+	fields := make(map[string]field)
 	for i, v := range record {
 		// At this point, we are sure `record` and `r.header` have the same size
-		fields[r.header[i]] = v
+		fields[r.header[i]] = field{
+			value: v,
+		}
 	}
 
 	return &Record{

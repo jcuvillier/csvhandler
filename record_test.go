@@ -20,14 +20,14 @@ func (w errWriter) Write(p []byte) (n int, err error) {
 }
 
 var r = Record{
-	fields: map[string]string{
-		"first_name":      "John",
-		"last_name":       "Smith",
-		"age":             "25",
-		"is_active":       "true",
-		"registered":      "2018-11-05 12:55:10",
-		"balance":         "15.65",
-		"mean_connection": "12m10s",
+	fields: map[string]field{
+		"first_name":      field{value: "John"},
+		"last_name":       field{value: "Smith"},
+		"age":             field{value: 25},
+		"is_active":       field{value: true},
+		"registered":      field{value: "2018-11-05 12:55:10"},
+		"balance":         field{value: 15.65},
+		"mean_connection": field{value: "12m10s"},
 	},
 }
 
@@ -335,9 +335,42 @@ func TestGetDuration(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	r := NewRecord()
-	r.Set("key", "value")
-	v, err := r.Get("key")
-	require.NoError(t, err)
-	assert.Equal(t, "value", v)
+	testcases := map[string]struct {
+		value      interface{}
+		formatters []Formatter
+		expected   string
+	}{
+		"no formatter": {
+			value: "value",
+		},
+		"single formatter": {
+			value:      "value",
+			formatters: []Formatter{defaultFormatter},
+			expected:   "value",
+		},
+		"chain formatters": {
+			value: "value",
+			formatters: []Formatter{
+				StringFormatter("prefix %v"),
+				StringFormatter("%v suffix"),
+			},
+			expected: "prefix value suffix",
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			r := NewRecord()
+			r.Set("key", tc.value, tc.formatters...)
+
+			f, ok := r.fields["key"]
+			require.True(t, ok)
+			assert.Equal(t, "value", f.value)
+			if f.formatter != nil {
+				s, err := f.formatter(f.value)
+				require.NoError(t, err)
+				assert.Equal(t, tc.expected, s)
+			}
+		})
+	}
 }

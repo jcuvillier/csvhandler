@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/jcuvillier/csvhandler"
 )
@@ -13,6 +15,10 @@ const (
 	lastName  = "last_name"
 	age       = "age"
 )
+
+func toUpper(value interface{}) (string, error) {
+	return strings.ToUpper(fmt.Sprintf("%v", value)), nil
+}
 
 func main() {
 	// Create a `encoding/csv.Writer` to be used
@@ -25,6 +31,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// ToUpper formatter for _lastname_ column
+	writer.SetFormatter(lastName, toUpper)
 
 	// Write header line
 	if err := writer.WriteHeader(); err != nil {
@@ -36,16 +44,17 @@ func main() {
 	r.Set(lastName, "Smith")
 	r.Set(firstName, "John")
 	r.Set(age, 25)
-	if err := writer.Write(r); err != nil { // Writes John;Smith;25
+	if err := writer.Write(r); err != nil { // Writes John;SMITH;25
 		log.Fatal(err)
 	}
 
 	// Default value can be specified for a given key
 	writer.SetDefault(age, 20)
+
 	r = csvhandler.NewRecord()
 	r.Set(lastName, "Smith")
 	r.Set(firstName, "Laura")
-	if err := writer.Write(r); err != nil { // Writes Laura;Smith;20
+	if err := writer.Write(r); err != nil { // Writes Laura;SMITH;20
 		log.Fatal(err)
 	}
 }

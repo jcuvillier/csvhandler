@@ -2,7 +2,6 @@ package csvhandler
 
 import (
 	"encoding/csv"
-	"fmt"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -13,11 +12,11 @@ const defaultEmptyValue = ""
 // A Writer writes records using CSV encoding.
 //
 // It internally uses a `encoding/csv.Writer` to write the records.
-// Therefore
 type Writer struct {
 	writer     *csv.Writer
 	header     []string
-	defaults   map[string]string
+	defaults   map[string]field
+	formatters map[string]Formatter
 	mutex      *sync.Mutex
 	EmptyValue string
 }
@@ -38,7 +37,8 @@ func NewWriter(w *csv.Writer, header ...string) (*Writer, error) {
 	return &Writer{
 		writer:     w,
 		header:     header,
-		defaults:   make(map[string]string),
+		defaults:   make(map[string]field),
+		formatters: make(map[string]Formatter),
 		mutex:      &sync.Mutex{},
 		EmptyValue: defaultEmptyValue,
 	}, nil
@@ -47,8 +47,28 @@ func NewWriter(w *csv.Writer, header ...string) (*Writer, error) {
 // SetDefault sets the default value to be used if there is no value for this key in the record.
 //
 // If the defined value is nil, default value is used.
-func (w *Writer) SetDefault(key string, value interface{}) {
-	w.defaults[key] = fmt.Sprintf("%v", value)
+func (w *Writer) SetDefault(key string, value interface{}, formatter ...Formatter) {
+	var f Formatter
+	if len(formatter) == 1 {
+		f = formatter[0]
+	} else if len(formatter) > 1 {
+		f = chainFormatter(formatter...)
+	}
+	w.defaults[key] = field{
+		value:     value,
+		formatter: f,
+	}
+}
+
+// SetFormatter sets the formatter to be used
+func (w *Writer) SetFormatter(key string, formatter ...Formatter) {
+	if len(formatter) == 0 {
+		return
+	} else if len(formatter) == 1 {
+		w.formatters[key] = formatter[0]
+	} else if len(formatter) > 1 {
+		w.formatters[key] = chainFormatter(formatter...)
+	}
 }
 
 // WriteHeader writes the header line of the CSV.
@@ -82,13 +102,11 @@ func (w *Writer) Write(r *Record) error {
 	record := make([]string, 0, len(w.header))
 
 	for _, h := range w.header {
-		if value, hasValue := r.fields[h]; hasValue {
-			record = append(record, value)
-		} else if defValue, hasDefault := w.defaults[h]; hasDefault {
-			record = append(record, fmt.Sprintf("%v", defValue))
-		} else {
-			record = append(record, fmt.Sprintf("%v", w.EmptyValue))
+		value, err := w.getFormattedValue(r, h)
+		if err != nil {
+			return err
 		}
+		record = append(record, value)
 	}
 
 	if err := w.writer.Write(record); err != nil {
@@ -96,6 +114,43 @@ func (w *Writer) Write(r *Record) error {
 	}
 	w.writer.Flush()
 	return errors.Wrap(w.writer.Error(), "cannot write record")
+}
+
+// getFormattedValue returned the formatted value of the given record and column.
+//
+// Value used is from:
+// 1. corresponding field of the record
+// 2. default value defined for the column
+// 3. Writer's EmptyValue
+//
+// Formatter used is from:
+// 1. associated formatter to the field or defaultValue depending on the value used
+// 2. defaultFormatter if both are missing
+// 3. formatter defined for column is chained if specified
+func (w *Writer) getFormattedValue(record *Record, column string) (string, error) {
+	var f Formatter
+	var v interface{}
+	// Use EmptyValue if record has no field and no defaultValue is set
+	v = w.EmptyValue
+	if field, hasField := record.fields[column]; hasField {
+		v = field.value
+		f = field.formatter
+	} else if defValue, hasDefault := w.defaults[column]; hasDefault {
+		v = defValue.value
+		f = defValue.formatter
+	}
+
+	if f == nil {
+		// No formatter defined at all, fallback to defaultFormatter
+		f = defaultFormatter
+	}
+
+	// Finally, check for column formatter, if present chain with field formatter
+	if formatter, hasFormatter := w.formatters[column]; hasFormatter && formatter != nil {
+		f = chainFormatter(f, formatter)
+	}
+
+	return f(v)
 }
 
 // WriteAll writes all the given records using the Write function.
