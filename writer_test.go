@@ -23,6 +23,14 @@ func (t tstWriter) Write(p []byte) (n int, err error) {
 	}
 	return t.w.Write(p)
 }
+
+// errFormatter is a formatter to trigger errors
+var errFormatter = func() Formatter {
+	return func(v interface{}) (string, error) {
+		return "", fmt.Errorf("formatter error")
+	}
+}
+
 func TestNewWriter(t *testing.T) {
 	testcases := map[string]struct {
 		header  []string
@@ -109,27 +117,27 @@ func TestWriteHeader(t *testing.T) {
 
 func TestWrite(t *testing.T) {
 	testcases := map[string]struct {
-		values    map[string]interface{}
-		defaults  map[string]interface{}
+		values    map[string]field
+		defaults  map[string]field
 		expected  string
 		errWriter bool
 		comma     rune
 	}{
 		"regular": {
-			values: map[string]interface{}{
-				"first_name": "John",
-				"last_name":  "Smith",
-				"age":        20,
+			values: map[string]field{
+				"first_name": {value: "John"},
+				"last_name":  {value: "Smith"},
+				"age":        {value: 20},
 			},
 			expected: "John;Smith;20\n",
 			comma:    ';',
 		},
 		"with default and empty": {
-			values: map[string]interface{}{
-				"first_name": "John",
+			values: map[string]field{
+				"first_name": {value: "John"},
 			},
-			defaults: map[string]interface{}{
-				"age": 30,
+			defaults: map[string]field{
+				"age": {value: 30},
 			},
 			expected: "John;;30\n",
 			comma:    ';',
@@ -140,6 +148,12 @@ func TestWrite(t *testing.T) {
 		"csv writer error": { // Forcing a csv write error by specifying an invalid comma rune
 			errWriter: true,
 			comma:     'a',
+		},
+		"formatter error": {
+			values: map[string]field{
+				"first_name": {value: "John", formatter: errFormatter()},
+			},
+			errWriter: true,
 		},
 	}
 
@@ -161,13 +175,13 @@ func TestWrite(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set default values
-			for k, v := range tc.defaults {
-				w.SetDefault(k, v)
+			for k, f := range tc.defaults {
+				w.SetDefault(k, f.value, f.formatter)
 			}
 			// Create record and sets record values
 			r := NewRecord()
-			for k, v := range tc.values {
-				r.Set(k, v)
+			for k, f := range tc.values {
+				r.Set(k, f.value, f.formatter)
 			}
 
 			// Write record and check
@@ -252,6 +266,155 @@ func TestWriteAll(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.expected, b.String())
+			}
+		})
+	}
+}
+
+func TestGetFormattedValue(t *testing.T) {
+	tstFormatter := func(v interface{}) (string, error) {
+		return fmt.Sprintf("this is a test, %v", v), nil
+	}
+
+	testcases := map[string]struct {
+		value      interface{}
+		formatter  Formatter
+		isDefault  bool
+		wFormatter Formatter
+		expected   string
+		isErr      bool
+	}{
+		"record field": {
+			value:     "record field",
+			formatter: defaultFormatter,
+			expected:  "record field",
+		},
+		"formatter error": {
+			value:     "record field",
+			formatter: errFormatter(),
+			isErr:     true,
+		},
+		"default field": {
+			value:     "default field",
+			formatter: defaultFormatter,
+			isDefault: true,
+			expected:  "default field",
+		},
+		"writer formatter": {
+			value:      "toto",
+			formatter:  StringFormatter("%v !!"),
+			wFormatter: tstFormatter,
+			expected:   "this is a test, toto !!",
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			w, err := NewWriter(csv.NewWriter(nil))
+			require.NoError(t, err)
+			r := NewRecord()
+			w.SetFormatter("foo", tc.wFormatter)
+
+			if !tc.isDefault {
+				r.Set("foo", tc.value, tc.formatter)
+			} else {
+				w.SetDefault("foo", tc.value, tc.formatter)
+			}
+
+			v, err := w.getFormattedValue(r, "foo")
+			if tc.isErr {
+				require.Error(t, err)
+			} else {
+				assert.Equal(t, tc.expected, v)
+			}
+		})
+	}
+}
+
+func TestSetDefault(t *testing.T) {
+	testcases := map[string]struct {
+		value      interface{}
+		formatters []Formatter
+		expected   string
+	}{
+		"no formatter": {
+			value: "value",
+		},
+		"single formatter": {
+			value:      "value",
+			formatters: []Formatter{defaultFormatter},
+			expected:   "value",
+		},
+		"chain formatters": {
+			value: "value",
+			formatters: []Formatter{
+				StringFormatter("prefix %v"),
+				StringFormatter("%v suffix"),
+			},
+			expected: "prefix value suffix",
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			w := &Writer{
+				defaults: make(map[string]field),
+			}
+			w.SetDefault("key", tc.value, tc.formatters...)
+
+			f, ok := w.defaults["key"]
+			require.True(t, ok)
+			assert.Equal(t, "value", f.value)
+			if f.formatter != nil {
+				s, err := f.formatter(f.value)
+				require.NoError(t, err)
+				assert.Equal(t, tc.expected, s)
+			}
+		})
+	}
+}
+
+func TestSetFormatter(t *testing.T) {
+	testcases := map[string]struct {
+		value      interface{}
+		formatters []Formatter
+		expected   string
+		isNil      bool
+	}{
+		"no formatter": {
+			value: "value",
+			isNil: true,
+		},
+		"single formatter": {
+			value:      "value",
+			formatters: []Formatter{defaultFormatter},
+			expected:   "value",
+		},
+		"chain formatters": {
+			value: "value",
+			formatters: []Formatter{
+				StringFormatter("prefix %v"),
+				StringFormatter("%v suffix"),
+			},
+			expected: "prefix value suffix",
+		},
+	}
+
+	for n, tc := range testcases {
+		t.Run(n, func(t *testing.T) {
+			w := &Writer{
+				formatters: make(map[string]Formatter),
+			}
+			w.SetFormatter("key", tc.formatters...)
+
+			f, ok := w.formatters["key"]
+			if tc.isNil {
+				require.False(t, ok)
+			} else {
+				require.True(t, ok)
+				v, err := f(tc.value)
+				require.NoError(t, err)
+				assert.Equal(t, tc.expected, v)
 			}
 		})
 	}

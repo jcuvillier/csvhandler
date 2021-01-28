@@ -45,6 +45,8 @@ record.Set("age", 27)
 writer.Write(record) // Writes Holly,Franklin,27
 ```
 
+## Empty and default values
+
 If a field is not specified, `Writer.EmptyValue` is used. A default value can also be provided with `Writer.SetDefault` function.
 
 ```golang
@@ -55,6 +57,65 @@ record := NewRecord()
 record.Set("first_name", "Holly")
 writer.Write(record) // Writes Holly,,18
 ```
+
+## Formatter
+
+Formatters can be defined and used when writting records.
+
+```golang
+// Formatter is the function that returns a string formatted version of the given value or an error.
+type Formatter func(interface{}) (string, error)
+```
+
+### Built-in formatters
+This library provides built-in formatters:
+* StringFormatter
+```golang
+// StringFormatter returns a new formatter that uses the given format.
+// Format is applied using `fmt.Sprintf`
+func StringFormatter(format string) Formatter
+```
+
+* TimeFormatter
+```golang
+// TimeFormatter returns a new formatter that uses the given layout to format a time.
+// Only time.Time and *time.Time are allowed as value for the returned formatter.
+func TimeFormatter(layout string) Formatter
+```
+
+### How to specify formatter ?
+
+Formatters can be specified when setting a value to a record
+```golang
+record.Set("first_name", "Holly", StringFormatter("My name is %v")) // My name is Holy
+```
+or when setting a default value
+```golang
+writer.SetDefault("age", 18, StringFormatter("%v (default)")) // 18 (default)
+```
+
+If no formatter is specified, the following `defaultFormatter` is applied:
+```golang
+// defaultFormatter is the formatter used when no formatter are specified by caller.
+// It printfs the value with a basic `fmt.Sprintf("%v")`
+func defaultFormatter(value interface{}) (string, error) {
+	return fmt.Sprintf("%v", value), nil
+}
+```
+
+It is also possible to specify a formatter to be applied for a given column, this formatter is _chained_ with any formatter previously specified.
+
+```golang
+writer.SetFormatter("last_update", TimeFormatter(time.UnixDate)) // Tue Jan 26 10:20:08 CET 2021
+```
+
+### Chained formatter
+Formatters are passed using a variadic to make it optionnal. Therefore it is possible to specify multiple formatter, in such case, they are _chained_.
+
+```golang
+record.Set("time", time.Now(), TimeFormatter("Monday 02 Jan 2006"), StringFormatter("Today is %v")) // Today is Tuesday 26 Jan 2021
+```
+
 
 ## Record
 
