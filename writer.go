@@ -2,9 +2,8 @@ package csvhandler
 
 import (
 	"encoding/csv"
+	"fmt"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 const defaultEmptyValue = ""
@@ -81,11 +80,14 @@ func (w *Writer) WriteHeader() error {
 
 	if len(w.header) != 0 {
 		if err := w.writer.Write(w.header); err != nil {
-			return errors.Wrap(err, "cannot write header line")
+			return fmt.Errorf("cannot write header line: %s", err)
 		}
 	}
 	w.writer.Flush()
-	return errors.Wrap(w.writer.Error(), "cannot write header line")
+	if err := w.writer.Error(); err != nil {
+		return fmt.Errorf("cannot write header line: %s", err)
+	}
+	return nil
 }
 
 // Write writes the given record as a new line.
@@ -110,10 +112,13 @@ func (w *Writer) Write(r *Record) error {
 	}
 
 	if err := w.writer.Write(record); err != nil {
-		return errors.Wrap(err, "cannot write record")
+		return fmt.Errorf("cannot write record: %s", err)
 	}
 	w.writer.Flush()
-	return errors.Wrap(w.writer.Error(), "cannot write record")
+	if err := w.writer.Error(); err != nil {
+		return fmt.Errorf("cannot write record: %s", err)
+	}
+	return nil
 }
 
 // getFormattedValue returned the formatted value of the given record and column.
